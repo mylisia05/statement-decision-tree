@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Decision Tree for Issuing an SfN Statement</title>
+  <style>
+    body {
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-size: 16px;
+      font-weight: 400;
+      background: #ffffff;
+      color: #1a1a1a;
+      margin: 0;
+      padding: 2rem;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    .tree { max-width: 720px; margin: 0 auto; }
+    .tree-title { font-size: 28px; font-weight: 400; margin-bottom: 0.5rem; color: #104B7D; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
+    .tree-subhead { font-size: 18px; font-weight: 400; font-style: italic; margin-bottom: 1.5rem; color: #8C8D8E; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; }
+
+    .node-wrap { display: flex; flex-direction: column; align-items: center; }
+    .connector { width: 2px; height: 28px; background: #8C8D8E; margin: 0 auto; }
+    .connector-row { display: flex; align-items: flex-start; justify-content: center; position: relative; width: 100%; }
+    .branch-line { position: absolute; top: 0; height: 2px; background: #8C8D8E; z-index: 0; }
+    .branch-col { display: flex; flex-direction: column; align-items: center; flex: 1; }
+    .branch-col .connector { height: 28px; }
+
+    .q-box {
+      background: #ffffff;
+      border: 1px solid #8C8D8E;
+      border-radius: 10px;
+      padding: 12px 20px;
+      font-size: 16px;
+      font-weight: 400;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: #1a1a1a;
+      text-align: center;
+      max-width: 380px;
+      cursor: pointer;
+      transition: background 0.15s;
+      position: relative;
+      z-index: 1;
+    }
+    .q-box:hover { background: #f0eeea; }
+
+    .q-num {
+      font-size: 11px;
+      font-weight: 400;
+      color: #888780;
+      margin-bottom: 3px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .outcome {
+      border-radius: 6px;
+      padding: 9px 15px;
+      font-size: 15px;
+      font-weight: 400;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      text-align: center;
+      max-width: 250px;
+    }
+    .out-stop    { background: #fdecea; color: #8A1F03; border: 1px solid #d4a5a0; }
+    .out-pause   { background: #fffbf0; color: #8B6F00; border: 1px solid #F5CF47; }
+    .out-narrow  { background: #e8f2fc; color: #104B7D; border: 1px solid #9ac0e8; }
+    .out-proceed { background: #e8f2fc; color: #104B7D; border: 1px solid #9ac0e8; }
+    .out-type    { background: #f5f4f0; color: #1a1a1a; border: 1px solid #8C8D8E; }
+
+    .detail-panel {
+      background: #f5f4f0;
+      border: 1px solid #8C8D8E;
+      border-radius: 10px;
+      padding: 14px 20px;
+      font-size: 16px;
+      font-weight: 400;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: #444441;
+      margin-top: 8px;
+      display: none;
+      max-width: 480px;
+      line-height: 1.65;
+    }
+    .detail-panel.open { display: block; }
+    .detail-panel ul { padding-left: 1.3em; }
+    .detail-panel li { margin-bottom: 5px; }
+    .detail-title {
+      font-weight: 400;
+      color: #104B7D;
+      margin-bottom: 7px;
+      font-size: 16px;
+      text-decoration: underline;
+    }
+
+    .mission-box {
+      background: #e8f2fc;
+      border: 1px solid #104B7D;
+      border-radius: 6px;
+      padding: 11px 15px;
+      font-size: 15px;
+      font-weight: 400;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      color: #104B7D;
+      line-height: 1.65;
+      margin-top: 10px;
+      font-style: italic;
+    }
+    .mission-label {
+      font-style: normal;
+      font-weight: 400;
+      font-size: 15px;
+      margin-bottom: 5px;
+      display: block;
+      text-decoration: underline;
+    }
+
+
+
+    .sfn-footer {
+      margin-top: 2rem;
+      padding-top: 2rem;
+      border-top: 2px solid #104B7D;
+      text-align: center;
+    }
+    .sfn-logo-footer {
+      font-size: 14px;
+      color: #104B7D;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+    .sfn-address {
+      font-size: 12px;
+      color: #8C8D8E;
+      line-height: 1.6;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+    .sfn-tagline {
+      font-size: 13px;
+      color: #104B7D;
+      font-style: italic;
+      margin-top: 0.75rem;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+  </style>
+<body>
+<div class="tree">
+  <div class="tree-title">Decision Tree for Issuing an SfN Statement</div>
+  <div class="tree-subhead">Click on step box for more information</div>
+
+  <!-- Q1 -->
+  <div class="node-wrap">
+    <div class="q-box" onclick="toggle('d1')">
+      <div class="q-num">Step 1</div>
+      Is the issue materially connected to the society's mission?
+    </div>
+    <div class="detail-panel" id="d1">
+      <div class="detail-title">Ask yourself:</div>
+      <ul>
+        <li>Does it affect the scientific field, research enterprise, education, public understanding, funding, ethics, or members' ability to do their work?</li>
+        <li>Does it affect the populations the society serves?</li>
+      </ul>
+      <div class="mission-box">
+        <span class="mission-label">SfN mission:</span>
+        Advance the understanding of the brain and the nervous system by bringing together scientists of all segments of neuroscience, by facilitating the integration of research directed at all levels of biological organization, and by encouraging translational research and the application of new scientific knowledge to develop improved disease treatments and cures.
+      </div>
+    </div>
+    <div class="connector"></div>
+    <div class="connector-row">
+      <div class="branch-line" style="left: 25%; right: 25%;"></div>
+      <div class="branch-col">
+        <div class="connector"></div>
+        <div class="outcome out-stop">No → Do not issue a statement</div>
+      </div>
+      <div class="branch-col">
+        <div class="connector"></div>
+        <div class="outcome out-proceed" style="max-width:160px;">Yes → Continue</div>
+      </div>
+    </div>
+    <div class="connector"></div>
+  </div>
+
+  <!-- Q2 -->
+  <div class="node-wrap">
+    <div class="q-box" onclick="toggle('d2')">
+      <div class="q-num">Step 2</div>
+      Does the society have standing to speak?
+    </div>
+    <div class="detail-panel" id="d2">
+      <div class="detail-title">Ask yourself:</div>
+      <ul>
+        <li>Is this within the society's expertise?</li>
+        <li>Can the position be grounded in evidence, professional norms, or established values?</li>
+        <li>Would members reasonably expect the society to say something?</li>
+        <li>Which coalition partners are engaging? (Research!America, NABR, Ad Hoc Group, AAN, ABC, and others provide political cover)</li>
+      </ul>
+    </div>
+    <div class="connector"></div>
+    <div class="connector-row">
+      <div class="branch-line" style="left: 20%; right: 20%;"></div>
+      <div class="branch-col">
+        <div class="connector"></div>
+        <div class="outcome out-stop">Weak connection → No policy statement; consider neutral member resource</div>
+      </div>
+      <div class="branch-col">
+        <div class="connector"></div>
+        <div class="outcome out-proceed" style="max-width:160px;">Yes → Continue</div>
+      </div>
+    </div>
+    <div class="connector"></div>
+  </div>
+
+  <!-- Q3 -->
+  <div class="node-wrap">
+    <div class="q-box" onclick="toggle('d3')">
+      <div class="q-num">Step 3</div>
+      Would a statement help more than it harms?
+    </div>
+    <div class="detail-panel" id="d3">
+      <div class="detail-title">Ask yourself:</div>
+      <ul>
+        <li>Can it clarify evidence, defend scientific integrity, protect people, or improve policy?</li>
+        <li>Is silence likely to be interpreted as indifference where the society has a clear responsibility?</li>
+        <li>Is there a realistic audience that can act on the statement?</li>
+        <li>Could this statement be interpreted as virtue signaling only?</li>
+      </ul>
+    </div>
+    <div class="connector"></div>
+    <div class="connector-row">
+      <div class="branch-line" style="left: 20%; right: 20%;"></div>
+      <div class="branch-col">
+        <div class="connector"></div>
+        <div class="outcome out-pause">Adds little beyond signaling → Pause</div>
+      </div>
+      <div class="branch-col">
+        <div class="connector"></div>
+        <div class="outcome out-proceed" style="max-width:160px;">Yes → Continue</div>
+      </div>
+    </div>
+    <div class="connector"></div>
+  </div>
+
+  <!-- Q4 -->
+  <div class="node-wrap">
+    <div class="q-box" onclick="toggle('d4')">
+      <div class="q-num">Step 4</div>
+      Is the issue time-sensitive?
+    </div>
+    <div class="detail-panel" id="d4">
+      <div class="detail-title">If yes — rapid response path:</div>
+      <ul>
+        <li>Short statement focused on facts, principles, or process</li>
+        <li>Note what is known, unknown, and evolving</li>
+      </ul>
+      <div class="detail-title" style="margin-top:10px;">If no:</div>
+      <ul><li>Use the standard process with fuller review</li></ul>
+    </div>
+    <div class="connector"></div>
+    <div class="connector-row">
+      <div class="branch-line" style="left: 20%; right: 20%;"></div>
+      <div class="branch-col">
+        <div class="connector"></div>
+        <div class="outcome out-narrow">Yes → Rapid response: short, fact-based statement</div>
+      </div>
+      <div class="branch-col">
+        <div class="connector"></div>
+        <div class="outcome out-stop" style="max-width:180px;">No → Standard review process</div>
+      </div>
+    </div>
+    <div class="connector"></div>
+  </div>
+
+  <!-- Q5 -->
+  <div class="node-wrap">
+    <div class="q-box" onclick="toggle('d5')">
+      <div class="q-num">Step 5</div>
+      Is there a solid evidence base?
+    </div>
+    <div class="detail-panel" id="d5">
+      <div class="detail-title">Ask yourself:</div>
+      <ul>
+        <li>Is the relevant evidence strong enough?</li>
+        <li>Are there major uncertainties or internal disagreements?</li>
+        <li>Can claims be sourced and defended publicly?</li>
+      </ul>
+      <div class="detail-title" style="margin-top:10px;">If evidence is weak or mixed, consider instead:</div>
+      <ul>
+        <li>A statement of principles</li>
+        <li>A call for more evidence</li>
+        <li>A process recommendation rather than a substantive policy endorsement</li>
+      </ul>
+    </div>
+    <div class="connector"></div>
+    <div class="connector-row">
+      <div class="branch-line" style="left: 20%; right: 20%;"></div>
+      <div class="branch-col">
+        <div class="connector"></div>
+        <div class="outcome out-pause">Weak/mixed → Principles statement or call for more evidence</div>
+      </div>
+      <div class="branch-col">
+        <div class="connector"></div>
+        <div class="outcome out-proceed" style="max-width:160px;">Strong → Continue</div>
+      </div>
+    </div>
+    <div class="connector"></div>
+  </div>
+
+  <!-- Q6 -->
+  <div class="node-wrap">
+    <div class="q-box" onclick="toggle('d6')">
+      <div class="q-num">Step 6</div>
+      Is the statement about science, or mainly partisan politics?
+    </div>
+    <div class="detail-panel" id="d6">
+      <div class="detail-title">Usually speak when the issue is:</div>
+      <ul>
+        <li>Evidence-based</li>
+        <li>Directly mission-linked</li>
+        <li>Tied to scientific integrity, public welfare, or research conditions</li>
+      </ul>
+      <div class="detail-title" style="margin-top:10px;">Be much more cautious when:</div>
+      <ul><li>The statement would mainly signal alignment with a political camp rather than advance the mission</li></ul>
+    </div>
+    <div class="connector"></div>
+    <div class="connector-row">
+      <div class="branch-line" style="left: 20%; right: 20%;"></div>
+      <div class="branch-col">
+        <div class="connector"></div>
+        <div class="outcome out-pause">Mainly partisan → Use extreme caution or don't issue</div>
+      </div>
+      <div class="branch-col">
+        <div class="connector"></div>
+        <div class="outcome out-proceed" style="max-width:160px;">Science-based → Continue</div>
+      </div>
+    </div>
+    <div class="connector"></div>
+  </div>
+
+  <!-- Q7 -->
+  <div class="node-wrap">
+    <div class="q-box" onclick="toggle('d7')">
+      <div class="q-num">Step 7</div>
+      What kind of statement is justified?
+    </div>
+    <div class="detail-panel" id="d7">
+      <div class="detail-title">Choose the narrowest effective form — default to least expansive:</div>
+      <ul>
+        <li>Member guidance / resource page</li>
+        <li>Statement of values / principles</li>
+        <li>Evidence summary</li>
+        <li>Policy / process recommendation</li>
+        <li>Advocacy statement supporting or opposing a policy</li>
+        <li>Coalition sign-on (when speed and alignment matter)</li>
+      </ul>
+    </div>
+    <div class="connector"></div>
+  </div>
+
+  <!-- Q8 -->
+  <div class="node-wrap">
+    <div class="q-box" onclick="toggle('d8')">
+      <div class="q-num">Step 8</div>
+      Is there governance authorization?
+    </div>
+    <div class="detail-panel" id="d8">
+      <div class="detail-title">Governance process:</div>
+      <ul>
+        <li><strong>Upon request:</strong> ED consults with Sr Dir of Comms and Dir of Advocacy</li>
+        <li><strong>If moving forward:</strong> ED notifies President, Presidential Line, or entire Executive Committee as appropriate</li>
+        <li><strong>Drafting:</strong> Sr Dir of Comms and Dir of Advocacy draft the statement</li>
+        <li><strong>Review:</strong> Draft circulated to President/Presidential Line/Executive Committee for final input</li>
+        <li><strong>Sign-off:</strong> ED reviews and signs off before posting</li>
+      </ul>
+    </div>
+    <div class="connector"></div>
+    <div class="connector-row">
+      <div class="branch-line" style="left: 20%; right: 20%;"></div>
+      <div class="branch-col">
+        <div class="connector"></div>
+        <div class="outcome out-stop">Unclear → Stop and route for approval</div>
+      </div>
+      <div class="branch-col">
+        <div class="connector"></div>
+        <div class="outcome out-proceed" style="max-width:160px;">Authorized → Continue</div>
+      </div>
+    </div>
+    <div class="connector"></div>
+  </div>
+
+  <!-- Q9 -->
+  <div class="node-wrap">
+    <div class="q-box" onclick="toggle('d9')">
+      <div class="q-num">Step 9</div>
+      Has stakeholder impact been assessed?
+    </div>
+    <div class="detail-panel" id="d9">
+      <div class="detail-title">Ask yourself:</div>
+      <ul>
+        <li>Who is helped, harmed, included, or excluded?</li>
+        <li>Are trainees, patients, educators, underrepresented groups, or international members affected differently?</li>
+        <li>Could the statement create legal, funding, or partnership risks?</li>
+      </ul>
+      <div class="detail-title" style="margin-top:10px;">Note:</div>
+      <ul><li>This should not veto a necessary statement — it should shape wording and scope.</li></ul>
+    </div>
+    <div class="connector"></div>
+  </div>
+
+  <!-- Q10 -->
+  <div class="node-wrap">
+    <div class="q-box" onclick="toggle('d10')">
+      <div class="q-num">Step 10</div>
+      Can the society defend and follow through?
+    </div>
+    <div class="detail-panel" id="d10">
+      <div class="detail-title">Ask yourself:</div>
+      <ul>
+        <li>Can leaders answer press and member questions?</li>
+        <li>Is there a Q&amp;A, evidence memo, and spokesperson plan?</li>
+        <li>Is there willingness to take criticism and sustain the position?</li>
+      </ul>
+    </div>
+    <div class="connector"></div>
+    <div class="connector-row">
+      <div class="branch-line" style="left: 20%; right: 20%;"></div>
+      <div class="branch-col">
+        <div class="connector"></div>
+        <div class="outcome out-pause">Not ready → Issue narrower statement or wait</div>
+      </div>
+      <div class="branch-col">
+        <div class="connector"></div>
+        <div class="outcome out-proceed">Yes → Issue the statement</div>
+      </div>
+    </div>
+  </div>
+
+
+
+</div>
+
+<div class="sfn-footer">
+  <div class="sfn-logo-footer">Society for Neuroscience</div>
+  <div class="sfn-address">
+    1121 14th Street NW, Suite 1010<br>
+    Washington, DC 20005<br>
+    Phone: (202) 962-4000 | www.sfn.org
+  </div>
+  <div class="sfn-tagline">Advancing the Understanding of the Brain and Nervous System</div>
+</div>
+
+<script>
+  function toggle(id) {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('open');
+  }
+</script>
+</body>
+</html>
